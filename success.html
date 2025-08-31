@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Successful - Solana Pay</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-green-50 to-emerald-100 min-h-screen">
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-md w-full">
+      <!-- Success Animation -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-24 h-24 bg-green-100 rounded-full mb-6">
+          <i class="fas fa-check text-4xl text-green-600 animate-bounce"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
+        <p class="text-gray-600">Your transaction has been confirmed on the Solana blockchain</p>
+      </div>
+
+      <!-- Payment Details Card -->
+      <div class="bg-white rounded-2xl shadow-xl p-8 mb-6">
+        <div class="space-y-4">
+          <div class="flex justify-between items-center pb-4 border-b">
+            <span class="text-gray-600">Transaction</span>
+            <span class="font-semibold text-green-600">Completed</span>
+          </div>
+          
+          <div class="flex justify-between items-center">
+            <span class="text-gray-600">Amount</span>
+            <span id="paymentAmount" class="font-semibold">0.1 SOL</span>
+          </div>
+          
+          <div class="flex justify-between items-center">
+            <span class="text-gray-600">Reference</span>
+            <code id="paymentRef" class="text-xs bg-gray-100 px-2 py-1 rounded font-mono">Loading...</code>
+          </div>
+          
+          <div class="flex justify-between items-center">
+            <span class="text-gray-600">Transaction Hash</span>
+            <div class="text-right">
+              <code id="txHash" class="text-xs bg-gray-100 px-2 py-1 rounded font-mono block">Loading...</code>
+              <a id="explorerLink" href="#" target="_blank" 
+                 class="text-xs text-blue-600 hover:text-blue-800 mt-1 inline-block">
+                <i class="fas fa-external-link-alt mr-1"></i>View on Solscan
+              </a>
+            </div>
+          </div>
+          
+          <div class="flex justify-between items-center">
+            <span class="text-gray-600">Confirmed At</span>
+            <span id="confirmedAt" class="text-sm">Just now</span>
+          </div>
+        </div>
+
+        <!-- Receipt Download -->
+        <div class="mt-6 pt-6 border-t">
+          <button onclick="downloadReceipt()" 
+                  class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-4 rounded-lg transition">
+            <i class="fas fa-download mr-2"></i>Download Receipt
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-3">
+        <button onclick="returnToMerchant()" 
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition">
+          <i class="fas fa-arrow-left mr-2"></i>Return to Store
+        </button>
+        
+        <button onclick="createNewPayment()" 
+                class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-6 rounded-xl transition">
+          <i class="fas fa-plus mr-2"></i>Create New Payment
+        </button>
+        
+        <div class="text-center">
+          <button onclick="sharePayment()" 
+                  class="text-indigo-600 hover:text-indigo-800 font-medium">
+            <i class="fas fa-share mr-2"></i>Share Transaction
+          </button>
+        </div>
+      </div>
+
+      <!-- Support Info -->
+      <div class="mt-8 text-center text-sm text-gray-500">
+        <p>Having issues? <a href="mailto:support@example.com" class="text-indigo-600 hover:text-indigo-800">Contact Support</a></p>
+        <p class="mt-2">Transaction ID: <span id="transactionId">Loading...</span></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const reference = urlParams.get('ref');
+    const returnUrl = urlParams.get('return_url');
+    const merchantName = urlParams.get('merchant') || 'Store';
+
+    // Load payment details
+    async function loadPaymentDetails() {
+      if (!reference) {
+        document.getElementById('paymentRef').textContent = 'No reference provided';
+        return;
+      }
+
+      try {
+        const response = await fetch(`api/proxy.php?action=public_status&reference=${reference}`);
+        const payment = await response.json();
+
+        if (payment.reference) {
+          document.getElementById('paymentRef').textContent = payment.reference.substring(0, 20) + '...';
+          document.getElementById('paymentAmount').textContent = `${payment.amount} ${payment.currency}`;
+          document.getElementById('transactionId').textContent = payment.reference;
+          
+          if (payment.transaction) {
+            document.getElementById('txHash').textContent = payment.transaction.signature.substring(0, 20) + '...';
+            document.getElementById('explorerLink').href = payment.transaction.explorer_url;
+            document.getElementById('confirmedAt').textContent = new Date(payment.transaction.confirmed_at).toLocaleString();
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load payment details:', error);
+      }
+    }
+
+    function returnToMerchant() {
+      if (returnUrl) {
+        window.location.href = returnUrl + '?status=success&ref=' + reference;
+      } else {
+        window.location.href = 'index.html';
+      }
+    }
+
+    function createNewPayment() {
+      window.location.href = 'index.html';
+    }
+
+    async function sharePayment() {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Solana Payment Successful',
+          text: `Payment completed successfully! Reference: ${reference}`,
+          url: window.location.href
+        });
+      } else {
+        // Copy to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Link copied to clipboard!');
+      }
+    }
+
+    function downloadReceipt() {
+      // Generate and download receipt
+      const receiptData = {
+        reference: document.getElementById('paymentRef').textContent,
+        amount: document.getElementById('paymentAmount').textContent,
+        timestamp: new Date().toISOString(),
+        status: 'Completed'
+      };
+      
+      const blob = new Blob([JSON.stringify(receiptData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `solana-pay-receipt-${reference || 'payment'}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Load details on page load
+    loadPaymentDetails();
+
+    // Auto-return after 30 seconds if return URL provided
+    if (returnUrl) {
+      setTimeout(() => {
+        if (confirm('Auto-returning to merchant in 5 seconds. Click OK to return now or Cancel to stay.')) {
+          returnToMerchant();
+        }
+      }, 25000);
+    }
+  </script>
+</body>
+</html>

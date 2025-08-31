@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Failed - Solana Pay</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-br from-red-50 to-pink-100 min-h-screen">
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-md w-full">
+      <!-- Failed Icon -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-24 h-24 bg-red-100 rounded-full mb-6">
+          <i class="fas fa-times text-4xl text-red-600"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Payment Failed</h1>
+        <p class="text-gray-600">Your transaction could not be completed</p>
+      </div>
+
+      <!-- Error Details Card -->
+      <div class="bg-white rounded-2xl shadow-xl p-8 mb-6">
+        <div class="space-y-4">
+          <div class="flex justify-between items-center pb-4 border-b">
+            <span class="text-gray-600">Status</span>
+            <span class="font-semibold text-red-600">Failed</span>
+          </div>
+          
+          <div class="flex justify-between items-center">
+            <span class="text-gray-600">Reason</span>
+            <span id="failureReason" class="text-sm text-right">Transaction timeout</span>
+          </div>
+          
+          <div class="flex justify-between items-center">
+            <span class="text-gray-600">Reference</span>
+            <code id="paymentRef" class="text-xs bg-gray-100 px-2 py-1 rounded font-mono">Loading...</code>
+          </div>
+
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4 mt-6">
+            <h4 class="font-semibold text-red-800 mb-2">What happened?</h4>
+            <p id="errorDescription" class="text-red-700 text-sm">
+              The payment could not be processed. This might be due to insufficient funds, network issues, or the payment request expiring.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-3">
+        <button onclick="retryPayment()" 
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition">
+          <i class="fas fa-redo mr-2"></i>Try Again
+        </button>
+        
+        <button onclick="returnToMerchant()" 
+                class="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-6 rounded-xl transition">
+          <i class="fas fa-arrow-left mr-2"></i>Return to Store
+        </button>
+        
+        <div class="text-center">
+          <button onclick="contactSupport()" 
+                  class="text-indigo-600 hover:text-indigo-800 font-medium">
+            <i class="fas fa-headset mr-2"></i>Contact Support
+          </button>
+        </div>
+      </div>
+
+      <!-- Common Issues Help -->
+      <div class="mt-8 bg-white rounded-lg p-6">
+        <h4 class="font-semibold text-gray-900 mb-4">Common Issues & Solutions</h4>
+        <div class="space-y-3 text-sm">
+          <div class="flex items-start">
+            <i class="fas fa-wallet text-gray-400 mt-1 mr-3"></i>
+            <div>
+              <strong>Insufficient Funds:</strong> Check your wallet balance
+            </div>
+          </div>
+          <div class="flex items-start">
+            <i class="fas fa-clock text-gray-400 mt-1 mr-3"></i>
+            <div>
+              <strong>Timeout:</strong> Payment request expired, try creating a new one
+            </div>
+          </div>
+          <div class="flex items-start">
+            <i class="fas fa-wifi text-gray-400 mt-1 mr-3"></i>
+            <div>
+              <strong>Network Issues:</strong> Check your internet connection
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const reference = urlParams.get('ref');
+    const returnUrl = urlParams.get('return_url');
+    const reason = urlParams.get('reason');
+
+    // Load failure details
+    async function loadFailureDetails() {
+      if (reference) {
+        document.getElementById('paymentRef').textContent = reference.substring(0, 20) + '...';
+      }
+      
+      if (reason) {
+        document.getElementById('failureReason').textContent = reason;
+        document.getElementById('errorDescription').textContent = getErrorDescription(reason);
+      }
+    }
+
+    function getErrorDescription(reason) {
+      const descriptions = {
+        'timeout': 'The payment request expired before completion.',
+        'insufficient_funds': 'Your wallet does not have enough balance.',
+        'cancelled': 'The payment was cancelled by the user.',
+        'network_error': 'Network connection issues prevented the transaction.',
+        'invalid_address': 'The recipient wallet address is invalid.',
+        'unknown': 'An unexpected error occurred during processing.'
+      };
+      return descriptions[reason] || descriptions['unknown'];
+    }
+
+    function retryPayment() {
+      if (reference) {
+        window.location.href = `index.html?retry=${reference}`;
+      } else {
+        window.location.href = 'index.html';
+      }
+    }
+
+    function returnToMerchant() {
+      if (returnUrl) {
+        window.location.href = returnUrl + '?status=failed&ref=' + reference;
+      } else {
+        window.location.href = 'index.html';
+      }
+    }
+
+    function contactSupport() {
+      const subject = `Payment Failed - Reference: ${reference || 'N/A'}`;
+      const body = `I need help with a failed payment.\n\nReference: ${reference}\nReason: ${reason}\n\nPlease assist.`;
+      window.location.href = `mailto:support@example.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+
+    loadFailureDetails();
+  </script>
+</body>
+</html>
